@@ -1,5 +1,4 @@
-import type { ISpectralDiagnostic } from '@stoplight/spectral-core';
-import type { RulesetDefinition } from '@stoplight/spectral-core';
+import type { ISpectralDiagnostic, RulesetDefinition } from '@stoplight/spectral-core';
 import { Spectral } from '@stoplight/spectral-core';
 // @ts-expect-error - This is a bundled file not sure why it's not found
 import { bundleAndLoadRuleset } from '@stoplight/spectral-ruleset-bundler/with-loader';
@@ -7,7 +6,6 @@ import { oas } from '@stoplight/spectral-rulesets';
 import { app, BrowserWindow, ipcMain, IpcRendererEvent, shell } from 'electron';
 import fs from 'fs';
 
-import { SegmentEvent, trackPageView, trackSegmentEvent } from '../analytics';
 import { authorizeUserInWindow } from '../authorizeUserInWindow';
 import { exportAllWorkspaces } from '../export';
 import { insomniaFetch } from '../insomniaFetch';
@@ -76,13 +74,6 @@ export function registerMainHandlers() {
 
   ipcMain.on('cancelCurlRequest', (_, requestId: string): void => {
     cancelCurlRequest(requestId);
-  });
-
-  ipcMain.on('trackSegmentEvent', (_, options: { event: SegmentEvent; properties?: Record<string, unknown> }): void => {
-    trackSegmentEvent(options.event, options.properties);
-  });
-  ipcMain.on('trackPageView', (_, options: { name: string }): void => {
-    trackPageView(options.name);
   });
 
   ipcMain.handle('installPlugin', (_, lookupName: string) => {
