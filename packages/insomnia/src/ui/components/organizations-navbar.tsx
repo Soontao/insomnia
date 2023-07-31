@@ -2,7 +2,6 @@ import React, { FC, useEffect, useRef, useState } from 'react';
 import { Link, useLoaderData, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
-import * as session from '../../account/session';
 import { isDefaultOrganization } from '../../models/organization';
 import { RootLoaderData } from '../routes/root';
 import { Link as ExternalLink } from './base/link';
@@ -10,9 +9,7 @@ import { Modal, ModalHandle } from './base/modal';
 import { ModalBody } from './base/modal-body';
 import { ModalFooter } from './base/modal-footer';
 import { ModalHeader } from './base/modal-header';
-import { showAlert } from './modals';
 import { showLoginModal } from './modals/login-modal';
-import { SvgIcon } from './svg-icon';
 import { Tooltip } from './tooltip';
 
 const Navbar = styled.nav({
@@ -54,20 +51,6 @@ const NavbarItem = styled(Link)<{
   textShadow: '0 1px 0 var(--hl-md)',
   outline: `3px solid ${$isActive ? 'var(--color-font)' : 'transparent'}`,
 }));
-
-const CreateButton = styled.button({
-  padding: 'var(--padding-sm)',
-  borderRadius: 'var(--radius-md)',
-  width: '27px',
-  height: '27px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  overflow: 'hidden',
-  borderWidth: '1px',
-  borderStyle: 'solid',
-  borderColor: 'transparent',
-});
 
 const SignupModal: FC<{onHide: () => void}> = ({
   onHide,

@@ -3,10 +3,7 @@ import styled from 'styled-components';
 
 import * as session from '../../account/session';
 import { Dropdown, DropdownButton, DropdownItem, ItemContent } from './base/dropdown';
-import { Link as ExternalLink } from './base/link';
-import { showLoginModal } from './modals/login-modal';
 import { SvgIcon } from './svg-icon';
-import { Button } from './themed-button';
 
 const Toolbar = styled.div({
   display: 'flex',
@@ -14,16 +11,6 @@ const Toolbar = styled.div({
   paddingRight: 'var(--padding-sm)',
   gap: 'var(--padding-sm)',
   margin: 0,
-});
-
-const SignUpButton = styled(Button)({
-  '&&': {
-    backgroundColor: 'var(--color-surprise)',
-    color: 'var(--color-font-surprise)',
-    textDecoration: 'none',
-    margin: 0,
-    boxSizing: 'border-box',
-  },
 });
 
 export const AccountToolbar = () => {
