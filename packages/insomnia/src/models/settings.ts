@@ -5,7 +5,7 @@ import {
 } from '../common/constants';
 import { database as db } from '../common/database';
 import * as hotkeys from '../common/hotkeys';
-import { HttpVersions, KeyboardShortcut, Settings as BaseSettings, UpdateChannel } from '../common/settings';
+import { Settings as BaseSettings, HttpVersions, KeyboardShortcut, UpdateChannel } from '../common/settings';
 import type { BaseModel } from './index';
 
 export type Settings = BaseModel & BaseSettings;
@@ -31,7 +31,7 @@ export function init(): BaseSettings {
     deviceId: null,
     disableHtmlPreviewJs: false,
     disableResponsePreviewLinks: false,
-    disableUpdateNotification: false,
+    disableUpdateNotification: true,
     editorFontSize: 11,
     editorIndentSize: 2,
     editorIndentWithTabs: true,
@@ -63,7 +63,7 @@ export function init(): BaseSettings {
     theme: getAppDefaultTheme(),
     // milliseconds
     timeout: 30_000,
-    updateAutomatically: true,
+    updateAutomatically: false,
     updateChannel: UpdateChannel.stable,
     useBulkHeaderEditor: false,
     useBulkParametersEditor: false,

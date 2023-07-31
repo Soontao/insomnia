@@ -2,12 +2,10 @@ import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 
 import * as session from '../../../account/session';
 import { getAppVersion, getProductName } from '../../../common/constants';
-import { Modal, type ModalHandle, ModalProps } from '../base/modal';
+import { Modal, ModalProps, type ModalHandle } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
 import { PanelContainer, TabItem, Tabs } from '../base/tabs';
-import { Account } from '../settings/account';
-import { AI } from '../settings/ai';
 import { General } from '../settings/general';
 import { ImportExport } from '../settings/import-export';
 import { Plugins } from '../settings/plugins';

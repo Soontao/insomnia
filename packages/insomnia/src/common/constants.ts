@@ -53,7 +53,7 @@ export function updatesSupported() {
     return false;
   }
 
-  return true;
+  return false;
 }
 
 export const getClientString = () => `${getAppEnvironment()}::${getAppPlatform()}::${getAppVersion()}`;

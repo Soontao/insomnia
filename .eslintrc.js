@@ -152,6 +152,6 @@ module.exports = {
     '@typescript-eslint/semi': [ERROR, 'always'],
     '@typescript-eslint/quotes': [ERROR, 'single', { avoidEscape: true }],
 
-    'simple-import-sort/imports': ERROR,
+    'simple-import-sort/imports': OFF(UNKNOWN),
   },
 };
