@@ -1,25 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Analytics } from '@segment/analytics-node';
-import { v4 as uuidv4 } from 'uuid';
 
 import * as session from '../account/session';
-import { getAccountId } from '../account/session';
-import {
-  getApiBaseURL,
-  getAppPlatform,
-  getAppVersion,
-  getProductName,
-  getSegmentWriteKey,
-} from '../common/constants';
-import * as models from '../models/index';
+import { getApiBaseURL } from '../common/constants';
 import { axiosRequest } from './network/axios-request';
-
-const analytics = new Analytics({ writeKey: getSegmentWriteKey() });
-
-const getDeviceId = async () => {
-  const settings = await models.settings.getOrCreate();
-  return settings.deviceId || (await models.settings.update(settings, { deviceId: uuidv4() })).deviceId;
-};
 
 export enum SegmentEvent {
   appStarted = 'App Started',
@@ -46,10 +29,10 @@ export enum SegmentEvent {
   buttonClick = 'Button Clicked',
 }
 
-export async function trackSegmentEvent(event: SegmentEvent, properties?: Record<string, any>,) {
+export async function trackSegmentEvent() {
 }
 
-export async function trackPageView(name: string) {
+export async function trackPageView() {
 }
 
 export async function sendTelemetry() {
@@ -63,20 +46,5 @@ export async function sendTelemetry() {
     }).catch((error: unknown) => {
       console.warn('[analytics] Unexpected error while sending telemetry', error);
     });
-  }
-}
-
-// ~~~~~~~~~~~~~~~~~ //
-// Private Functions //
-// ~~~~~~~~~~~~~~~~~ //
-function _getOsName() {
-  const platform = getAppPlatform();
-  switch (platform) {
-    case 'darwin':
-      return 'mac';
-    case 'win32':
-      return 'windows';
-    default:
-      return platform;
   }
 }
