@@ -532,6 +532,11 @@ export const WorkspaceEnvironmentsEditModal = forwardRef<WorkspaceEnvironmentsEd
                   });
                 }
               }}
+              onNameChange={name => {
+                updateEnvironment(activeEnvironment._id, {
+                  name,
+                });
+              }}
             />
           </div>
         </div>

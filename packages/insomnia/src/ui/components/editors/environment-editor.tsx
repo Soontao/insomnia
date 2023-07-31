@@ -58,6 +58,7 @@ export interface EnvironmentInfo {
 interface Props {
   environmentInfo: EnvironmentInfo;
   onBlur?: () => void;
+  onNameChange?: (name: string) => void;
 }
 
 export interface EnvironmentEditorHandle {
@@ -68,12 +69,29 @@ export interface EnvironmentEditorHandle {
 export const EnvironmentEditor = forwardRef<EnvironmentEditorHandle, Props>(({
   environmentInfo,
   onBlur,
+  onNameChange,
 }, ref) => {
   const editorRef = useRef<CodeEditorHandle>(null);
   const [error, setError] = useState('');
   const getValue = useCallback(() => {
     // @ts-expect-error -- current can be null
-    const value = editorRef.current.getValue();
+    let value = editorRef.current.getValue();
+    // convert postman environments
+    try {
+      const obj = JSON.parse(value);
+      if (obj.name && obj.values instanceof Array) {
+        const postmanValues = obj.values.reduce((pre: any, cur: { key: string; value: string }) => {
+          pre[cur.key] = cur.value; return pre;
+        }, {});
+        if (onNameChange) {
+          onNameChange(`${obj.name} (Migrated From Postman)`);
+        }
+        value = JSON.stringify(postmanValues, undefined, 2);
+        editorRef.current?.setValue(value);
+      }
+    } catch {
+
+    }
     if (!editorRef.current || !value) {
       return null;
     }
@@ -87,7 +105,9 @@ export const EnvironmentEditor = forwardRef<EnvironmentEditorHandle, Props>(({
       propertyOrder: json.map || null,
     };
     return environmentInfo;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
   useImperativeHandle(ref, () => ({
     isValid: () => !error,
     getValue,

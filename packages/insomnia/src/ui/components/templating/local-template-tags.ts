@@ -113,6 +113,17 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
   },
   {
     templateTag: {
+      displayName: 'ISO Timestamp',
+      name: '$isoTimestamp',
+      description: 'postman compatible iso timestamp',
+      args: [],
+      run() {
+        return new Date().toISOString();
+      },
+    },
+  },
+  {
+    templateTag: {
       displayName: 'UUID',
       name: 'uuid',
       description: 'generate v1 or v4 UUIDs',
