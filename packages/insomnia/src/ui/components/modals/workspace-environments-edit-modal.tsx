@@ -349,7 +349,7 @@ export const WorkspaceEnvironmentsEditModal = forwardRef<WorkspaceEnvironmentsEd
             </button>
           </div>
           <div className="pad env-modal__sidebar-heading">
-            <h3 className="no-margin">Sub Environments</h3>
+            <p className="no-margin">Sub Environments</p>
             <Dropdown
               aria-label='Create Environment Dropdown'
               triggerButton={
