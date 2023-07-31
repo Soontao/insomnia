@@ -25,7 +25,7 @@ export function init(): BaseSettings {
   return {
     autoDetectColorScheme: false,
     autoHideMenuBar: false,
-    autocompleteDelay: 1200,
+    autocompleteDelay: 500,
     clearOAuth2SessionOnRestart: true,
     darkTheme: getAppDefaultDarkTheme(),
     deviceId: null,
@@ -37,7 +37,7 @@ export function init(): BaseSettings {
     editorIndentWithTabs: true,
     editorKeyMap: 'default',
     editorLineWrapping: true,
-    enableAnalytics: true,
+    enableAnalytics: false,
     showVariableSourceAndValue: false,
     filterResponsesByEnv: false,
     followRedirects: true,

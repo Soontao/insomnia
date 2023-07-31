@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Analytics } from '@segment/analytics-node';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -45,58 +46,10 @@ export enum SegmentEvent {
   buttonClick = 'Button Clicked',
 }
 
-export async function trackSegmentEvent(
-  event: SegmentEvent,
-  properties?: Record<string, any>,
-) {
-  const settings = await models.settings.getOrCreate();
-  const allowAnalytics = settings.enableAnalytics || session.isLoggedIn();
-  if (allowAnalytics) {
-    try {
-      const anonymousId = await getDeviceId() ?? '';
-      const userId = getAccountId();
-      const context = {
-        app: { name: getProductName(), version: getAppVersion() },
-        os: { name: _getOsName(), version: process.getSystemVersion() },
-      };
-      analytics.track({
-        event,
-        properties,
-        context,
-        anonymousId,
-        userId,
-      }, error => {
-        if (error) {
-          console.warn('[analytics] Error sending segment event', error);
-        }
-      });
-    } catch (error: unknown) {
-      console.warn('[analytics] Unexpected error while sending segment event', error);
-    }
-  }
+export async function trackSegmentEvent(event: SegmentEvent, properties?: Record<string, any>,) {
 }
 
 export async function trackPageView(name: string) {
-  const settings = await models.settings.getOrCreate();
-  const allowAnalytics = settings.enableAnalytics || session.isLoggedIn();
-  if (allowAnalytics) {
-    try {
-      const anonymousId = await getDeviceId() ?? '';
-      const userId = getAccountId();
-      const context = {
-        app: { name: getProductName(), version: getAppVersion() },
-        os: { name: _getOsName(), version: process.getSystemVersion() },
-      };
-      analytics.page({ name, context, anonymousId, userId }, error => {
-        if (error) {
-          console.warn('[analytics] Error sending segment event', error);
-        }
-      });
-      sendTelemetry();
-    } catch (error: unknown) {
-      console.warn('[analytics] Unexpected error while sending segment event', error);
-    }
-  }
 }
 
 export async function sendTelemetry() {

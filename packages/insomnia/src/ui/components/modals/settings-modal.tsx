@@ -72,19 +72,9 @@ export const SettingsModal = forwardRef<SettingsModalHandle, ModalProps>((props,
               <Shortcuts />
             </PanelContainer>
           </TabItem>
-          <TabItem key="account" title="Account">
-            <PanelContainer className="pad">
-              <Account />
-            </PanelContainer>
-          </TabItem>
           <TabItem key="plugins" title="Plugins">
             <PanelContainer className="pad">
               <Plugins />
-            </PanelContainer>
-          </TabItem>
-          <TabItem key="ai" title="AI">
-            <PanelContainer className="pad">
-              <AI />
             </PanelContainer>
           </TabItem>
         </Tabs>
