@@ -41,6 +41,7 @@
   "dependencies": {
     "@apideck/better-ajv-errors": "^0.3.6",
     "@apidevtools/swagger-parser": "10.1.0",
+    "@faker-js/faker": "^8.0.2",
     "@getinsomnia/node-libcurl": "2.3.6-18",
     "@grpc/grpc-js": "^1.8.17",
     "@grpc/proto-loader": "^0.7.7",

@@ -25,7 +25,7 @@ export function init(): BaseSettings {
   return {
     autoDetectColorScheme: false,
     autoHideMenuBar: false,
-    autocompleteDelay: 500,
+    autocompleteDelay: 100,
     clearOAuth2SessionOnRestart: true,
     darkTheme: getAppDefaultDarkTheme(),
     deviceId: null,
