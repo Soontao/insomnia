@@ -159,36 +159,6 @@ export const OrganizationsNav: FC = () => {
               </li>
             );
           })}
-          <li>
-            <Tooltip position='right' message="Create new organization">
-              <CreateButton
-                type="button"
-                onClick={() => {
-                  if (session.isLoggedIn()) {
-                    showAlert({
-                      title: 'This capability is coming soon',
-                      message: (
-                        <div>
-                          <p>
-                            At the moment it is not possible to create more teams
-                            in Insomnia.
-                          </p>
-                          <p>
-                            🚀 This feature is coming soon!
-                          </p>
-                        </div>
-                      ),
-                    });
-                  } else {
-                    setIsSignupModalOpen(true);
-                  }
-                }}
-              >
-
-                <SvgIcon icon="plus" />
-              </CreateButton>
-            </Tooltip>
-          </li>
         </NavbarList>
       </Navbar>
       {isSignupModalOpen ? <SignupModal onHide={() => setIsSignupModalOpen(false)} /> : null}

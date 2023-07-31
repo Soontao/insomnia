@@ -505,23 +505,6 @@ const OrganizationProjectsSidebar: FC<{
 
       <SidebarDivider />
 
-      <List
-        onAction={key => {
-          window.main.openInBrowser(key.toString());
-        }}
-      >
-        <Item
-          key="https://insomnia.rest/pricing"
-          aria-label="Help and Feedback"
-        >
-          <SidebarListItemContent level={1}>
-            <SidebarListItemTitle
-              icon="arrow-up-right-from-square"
-              label="Explore Subscriptions"
-            />
-          </SidebarListItemContent>
-        </Item>
-      </List>
     </Sidebar>
   );
 };

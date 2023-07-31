@@ -69,14 +69,7 @@ export const AccountToolbar = () => {
           </DropdownItem>
         </Dropdown>
       ) : (
-        <Fragment>
-          <Button variant='outlined' size="small" onClick={showLoginModal}>
-            Login
-          </Button>
-          <SignUpButton href="https://app.insomnia.rest/app/signup/" as={ExternalLink} size="small" variant='contained'>
-            Sign Up
-          </SignUpButton>
-        </Fragment>
+          <Fragment />
       )}
     </Toolbar>
   );

@@ -80,7 +80,7 @@ export const AppHeader: FC<AppHeaderProps> = ({
           <LogoWrapper>
             <InsomniaAILogo />
           </LogoWrapper>
-          {!session.isLoggedIn() ? <GitHubStarsButton /> : null}
+          {/* {!session.isLoggedIn() ? <GitHubStarsButton /> : null} */}
         </Fragment>
       )}
       gridCenter={gridCenter}
