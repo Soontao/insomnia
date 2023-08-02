@@ -7,7 +7,6 @@
   "main": "dist/index.js",
   "types": "dist/send-request/index.d.ts",
   "dependencies": {
-    "@faker-js/faker": "^8.0.2",
     "@getinsomnia/node-libcurl": "2.3.6-18",
     "@segment/analytics-node": "1.0.0",
     "@stoplight/spectral-core": "^1.18.2",

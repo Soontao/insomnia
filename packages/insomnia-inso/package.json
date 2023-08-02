@@ -52,7 +52,6 @@
     "rimraf": "^5.0.1"
   },
   "dependencies": {
-    "@faker-js/faker": "^8.0.2",
     "@stoplight/spectral-core": "^1.18.2",
     "@stoplight/spectral-formats": "^1.5.0",
     "@stoplight/spectral-ruleset-bundler": "^1.5.2",
