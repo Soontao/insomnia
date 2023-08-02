@@ -594,6 +594,10 @@ const ScanResourcesForm = ({
             </Pill>
             <Pill>
               <i className="fa-regular fa-file fa-lg" />
+              OData
+            </Pill>
+            <Pill>
+              <i className="fa-regular fa-file fa-lg" />
               HAR
             </Pill>
             <Pill>

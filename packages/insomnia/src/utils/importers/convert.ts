@@ -7,7 +7,7 @@ export interface InsomniaImporter {
   description: string;
 }
 
-export interface ConvertResult<T = {}> {
+export interface ConvertResult<T extends {} = {}> {
   type: InsomniaImporter;
   data: {
     _type: 'export';
