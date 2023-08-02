@@ -1,5 +1,5 @@
 # customization
 
-* support import postman environment
-* support import odata `$metadata`
-* disable all telemetry
+- support import postman environment
+- support import odata `$metadata`
+- disable all telemetry
