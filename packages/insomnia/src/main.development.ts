@@ -1,6 +1,6 @@
 import electron, { BrowserWindow, app, ipcMain, session } from 'electron';
 import contextMenu from 'electron-context-menu';
-import installExtension, { REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS } from 'electron-devtools-installer';
+import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import path from 'path';
 
 import { userDataFolder } from '../config/config.json';
@@ -74,7 +74,7 @@ app.on('ready', async () => {
 
   if (isDevelopment() && process.env.SKIP_CHROME_EXT === undefined) {
     try {
-      const extensions = [REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS];
+      const extensions = [REACT_DEVELOPER_TOOLS];
       const extensionsPlural = extensions.length > 0 ? 's' : '';
       const names = await Promise.all(extensions.map(extension => installExtension(extension)));
       console.log(`[electron-extensions] Added DevTools Extension${extensionsPlural}: ${names.join(', ')}`);

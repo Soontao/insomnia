@@ -1,6 +1,5 @@
 import classnames from 'classnames';
 import React, { FC, Fragment, useCallback, useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 import { useInterval, useMount } from 'react-use';
 
@@ -12,14 +11,13 @@ import { strings } from '../../../common/strings';
 import * as models from '../../../models';
 import { isRemoteProject, Project } from '../../../models/project';
 import type { Workspace } from '../../../models/workspace';
-import { Status } from '../../../sync/types';
+import { Snapshot, Status } from '../../../sync/types';
 import { pushSnapshotOnInitialize } from '../../../sync/vcs/initialize-backend-project';
 import { logCollectionMovedToProject } from '../../../sync/vcs/migrate-collections';
 import { BackendProjectWithTeam } from '../../../sync/vcs/normalize-backend-project-team';
 import { pullBackendProject } from '../../../sync/vcs/pull-backend-project';
 import { interceptAccessError } from '../../../sync/vcs/util';
 import { VCS } from '../../../sync/vcs/vcs';
-import { selectRemoteProjects, selectSyncItems } from '../../redux/selectors';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
 import { Link } from '../base/link';
@@ -53,6 +51,7 @@ interface State {
   };
   status: Status;
   initializing: boolean;
+  history: Snapshot[];
   historyCount: number;
   loadingPull: boolean;
   loadingProjectPull: boolean;
@@ -67,6 +66,7 @@ export const SyncDropdown: FC<Props> = ({ vcs, workspace, project }) => {
       ahead: 0,
       behind: 0,
     },
+    history: [],
     historyCount: 0,
     initializing: true,
     loadingPull: false,
@@ -81,11 +81,13 @@ export const SyncDropdown: FC<Props> = ({ vcs, workspace, project }) => {
   });
   const { organizationId, projectId } = useParams<{ organizationId: string; projectId: string }>();
   const navigate = useNavigate();
-  const remoteProjects = useSelector(selectRemoteProjects);
-  const syncItems = useSelector(selectSyncItems);
   const {
     activeWorkspaceMeta,
+    projects,
+    syncItems,
   } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
+  const remoteProjects = projects.filter(isRemoteProject);
+
   const refetchRemoteBranch = useCallback(async () => {
     if (session.isLoggedIn()) {
       try {
@@ -112,11 +114,13 @@ export const SyncDropdown: FC<Props> = ({ vcs, workspace, project }) => {
     }
     const localBranches = (await vcs.getBranches()).sort();
     const currentBranch = await vcs.getBranch();
+    const history = await vcs.getHistory();
     const historyCount = await vcs.getHistoryCount();
     const status = await vcs.status(syncItems, {});
     setState(state => ({
       ...state,
       status,
+      history,
       historyCount,
       localBranches,
       currentBranch,
@@ -130,7 +134,10 @@ export const SyncDropdown: FC<Props> = ({ vcs, workspace, project }) => {
   }, REFRESH_PERIOD);
 
   const [isGitRepoSettingsModalOpen, setIsGitRepoSettingsModalOpen] = useState(false);
-
+  const [isSyncDeleteModalOpen, setIsSyncDeleteModalOpen] = useState(false);
+  const [isSyncHistoryModalOpen, setIsSyncHistoryModalOpen] = useState(false);
+  const [isSyncStagingModalOpen, setIsSyncStagingModalOpen] = useState(false);
+  const [isSyncBranchesModalOpen, setIsSyncBranchesModalOpen] = useState(false);
   useMount(async () => {
     setState(state => ({
       ...state,
@@ -286,6 +293,7 @@ export const SyncDropdown: FC<Props> = ({ vcs, workspace, project }) => {
     localBranches,
     currentBranch,
     status,
+    history,
     historyCount,
     loadingPull,
     loadingPush,
@@ -577,7 +585,7 @@ export const SyncDropdown: FC<Props> = ({ vcs, workspace, project }) => {
             <ItemContent
               icon="code-fork"
               label="Branches"
-              onClick={() => showModal(SyncBranchesModal, { onHide: refreshVCSAndRefetchRemote })}
+              onClick={() => setIsSyncBranchesModalOpen(true)}
             />
           </DropdownItem>
 
@@ -586,7 +594,7 @@ export const SyncDropdown: FC<Props> = ({ vcs, workspace, project }) => {
               icon="remove"
               isDisabled={historyCount === 0}
               label={<>Delete {strings.collection.singular}</>}
-              onClick={() => showModal(SyncDeleteModal, { onHide: refreshVCSAndRefetchRemote })}
+              onClick={() => setIsSyncDeleteModalOpen(true)}
             />
           </DropdownItem>
         </DropdownSection>
@@ -624,7 +632,7 @@ export const SyncDropdown: FC<Props> = ({ vcs, workspace, project }) => {
               isDisabled={historyCount === 0}
               icon="clock-o"
               label="History"
-              onClick={() => showModal(SyncHistoryModal)}
+              onClick={() => setIsSyncHistoryModalOpen(true)}
             />
           </DropdownItem>
 
@@ -643,11 +651,7 @@ export const SyncDropdown: FC<Props> = ({ vcs, workspace, project }) => {
               isDisabled={!canCreateSnapshot}
               icon="cube"
               label="Create Snapshot"
-              onClick={() =>
-                showModal(SyncStagingModal, {
-                  onSnapshot: refreshVCSAndRefetchRemote,
-                  handlePush,
-                })
+              onClick={() => setIsSyncStagingModalOpen(true)
               }
             />
           </DropdownItem>
@@ -673,6 +677,46 @@ export const SyncDropdown: FC<Props> = ({ vcs, workspace, project }) => {
       {isGitRepoSettingsModalOpen && (
         <GitRepositorySettingsModal
           onHide={() => setIsGitRepoSettingsModalOpen(false)}
+        />
+      )}
+      {isSyncDeleteModalOpen && (
+        <SyncDeleteModal
+          vcs={vcs}
+          onHide={() => {
+            refreshVCSAndRefetchRemote();
+            setIsSyncDeleteModalOpen(false);
+          }}
+        />
+      )}
+      {isSyncBranchesModalOpen && (
+        <SyncBranchesModal
+          vcs={vcs}
+          onHide={() => {
+            refreshVCSAndRefetchRemote();
+            setIsSyncBranchesModalOpen(false);
+          }}
+        />
+      )}
+      {isSyncStagingModalOpen && (
+        <SyncStagingModal
+          vcs={vcs}
+          branch={currentBranch}
+          onSnapshot={refreshVCSAndRefetchRemote}
+          handlePush={handlePush}
+          onHide={() => setIsSyncStagingModalOpen(false)}
+        />
+      )}
+      {/* {isSyncMergeModalOpen && (
+        <SyncMergeModal
+          onHide={() => setIsSyncMergeModalOpen(false)}
+        />
+      )} */}
+      {isSyncHistoryModalOpen && (
+        <SyncHistoryModal
+          vcs={vcs}
+          branch={currentBranch}
+          history={history}
+          onHide={() => setIsSyncHistoryModalOpen(false)}
         />
       )}
     </div>

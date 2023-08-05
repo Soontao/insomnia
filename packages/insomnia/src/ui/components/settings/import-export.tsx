@@ -1,6 +1,5 @@
-import React, { FC, Fragment, useCallback, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
+import React, { FC, Fragment, useEffect, useState } from 'react';
+import { useFetcher, useParams } from 'react-router-dom';
 import { useRouteLoaderData } from 'react-router-dom';
 
 import { getProductName } from '../../../common/constants';
@@ -8,15 +7,12 @@ import { docsImportExport } from '../../../common/documentation';
 import { exportAllToFile } from '../../../common/export';
 import { getWorkspaceLabel } from '../../../common/get-workspace-label';
 import { strings } from '../../../common/strings';
-import { isRequestGroup } from '../../../models/request-group';
-import { selectWorkspaceRequestsAndRequestGroups, selectWorkspacesForActiveProject } from '../../redux/selectors';
+import { ProjectLoaderData } from '../../routes/project';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
 import { Link } from '../base/link';
-import { AlertModal } from '../modals/alert-modal';
 import { ExportRequestsModal } from '../modals/export-requests-modal';
 import { ImportModal } from '../modals/import-modal';
-import { showModal } from '../modals/index';
 import { Button } from '../themed-button';
 interface Props {
   hideSettingsModal: () => void;
@@ -33,26 +29,22 @@ export const ImportExport: FC<Props> = ({ hideSettingsModal }) => {
   const activeWorkspaceName = workspaceData?.activeWorkspace.name;
   const projectName = workspaceData?.activeProject.name ?? getProductName();
 
-  const workspacesForActiveProject = useSelector(selectWorkspacesForActiveProject);
-  const workspaceRequestsAndRequestGroups = useSelector(selectWorkspaceRequestsAndRequestGroups);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-
-  const showExportRequestsModal = useCallback(() => {
-    if (!workspaceRequestsAndRequestGroups.filter(r => !isRequestGroup(r)).length) {
-      showModal(AlertModal, {
-        title: 'Cannot export',
-        message: <>There are no requests to export.</>,
-      });
-      return;
+  const workspacesFetcher = useFetcher();
+  useEffect(() => {
+    const isIdleAndUninitialized = workspacesFetcher.state === 'idle' && !workspacesFetcher.data;
+    if (isIdleAndUninitialized) {
+      workspacesFetcher.load(`/organization/${organizationId}/project/${projectId}`);
     }
-    showModal(ExportRequestsModal);
-    hideSettingsModal();
-  }, [hideSettingsModal, workspaceRequestsAndRequestGroups]);
+  }, [organizationId, projectId, workspacesFetcher]);
+  const projectLoaderData = workspacesFetcher?.data as ProjectLoaderData;
+  const workspacesForActiveProject = projectLoaderData?.workspaces.map(w => w.workspace) || [];
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-  const handleExportAllToFile = useCallback(() => {
+  const handleExportAllToFile = () => {
     exportAllToFile(projectName, workspacesForActiveProject);
     hideSettingsModal();
-  }, [hideSettingsModal, projectName, workspacesForActiveProject]);
+  };
 
   return (
     <Fragment>
@@ -81,7 +73,7 @@ export const ImportExport: FC<Props> = ({ hideSettingsModal }) => {
                   <ItemContent
                     icon="home"
                     label={`Export the "${activeWorkspaceName}" ${getWorkspaceLabel(workspaceData.activeWorkspace).singular}`}
-                    onClick={showExportRequestsModal}
+                    onClick={() => setIsExportModalOpen(true)}
                   />
                 </DropdownItem>
                 <DropdownItem aria-label={`Export files from the "${projectName}" ${strings.project.singular}`}>
@@ -94,7 +86,7 @@ export const ImportExport: FC<Props> = ({ hideSettingsModal }) => {
               </DropdownSection>
             </Dropdown>) : (<Button onClick={handleExportAllToFile}>{`Export files from the "${projectName}" ${strings.project.singular}`}</Button>)
           }
-        &nbsp;&nbsp;
+          &nbsp;&nbsp;
           <Button
             style={{
               display: 'flex',
@@ -106,7 +98,7 @@ export const ImportExport: FC<Props> = ({ hideSettingsModal }) => {
             <i className="fa fa-file-import" />
             {`Import to the "${projectName}" ${strings.project.singular}`}
           </Button>
-        &nbsp;&nbsp;
+          &nbsp;&nbsp;
           <Link href="https://insomnia.rest/create-run-button" className="btn btn--compact" button>
             Create Run Button
           </Link>
@@ -122,6 +114,11 @@ export const ImportExport: FC<Props> = ({ hideSettingsModal }) => {
           organizationId={organizationId}
           defaultProjectId={projectId}
           defaultWorkspaceId={workspaceId}
+        />
+      )}
+      {isExportModalOpen && (
+        <ExportRequestsModal
+          onHide={() => setIsExportModalOpen(false)}
         />
       )}
     </Fragment>

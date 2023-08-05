@@ -1,10 +1,9 @@
 import * as contentDisposition from 'content-disposition';
-import type { SaveDialogOptions } from 'electron';
 import fs from 'fs';
 import { extension as mimeExtension } from 'mime-types';
 import path from 'path';
 import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
-import { useParams, useRouteLoaderData } from 'react-router-dom';
+import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 import { useInterval } from 'react-use';
 import styled from 'styled-components';
 
@@ -12,17 +11,17 @@ import { database } from '../../common/database';
 import { getContentDispositionHeader } from '../../common/misc';
 import { getRenderContext, render, RENDER_PURPOSE_SEND } from '../../common/render';
 import * as models from '../../models';
-import { isEventStreamRequest, isRequest, Request } from '../../models/request';
-import { RequestMeta } from '../../models/request-meta';
+import { isEventStreamRequest, isRequest } from '../../models/request';
 import * as network from '../../network/network';
 import { convert } from '../../utils/importers/convert';
+import { invariant } from '../../utils/invariant';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../utils/url/querystring';
 import { SegmentEvent } from '../analytics';
 import { useReadyState } from '../hooks/use-ready-state';
 import { useRequestPatcher } from '../hooks/use-request';
 import { useRequestMetaPatcher } from '../hooks/use-request';
 import { useTimeoutWhen } from '../hooks/useTimeoutWhen';
-import { RequestLoaderData } from '../routes/request';
+import { ConnectActionParams, RequestLoaderData } from '../routes/request';
 import { RootLoaderData } from '../routes/root';
 import { WorkspaceLoaderData } from '../routes/workspace';
 import { Dropdown, DropdownButton, type DropdownHandle, DropdownItem, DropdownSection, ItemContent } from './base/dropdown';
@@ -69,10 +68,8 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
     settings,
   } = useRouteLoaderData('root') as RootLoaderData;
   const { hotKeyRegistry } = settings;
-  const { activeRequest, activeRequestMeta } = useRouteLoaderData('request/:requestId') as RequestLoaderData<Request, RequestMeta>;
-  const downloadPath = activeRequestMeta.downloadPath;
+  const { activeRequest, activeRequestMeta: { downloadPath } } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
   const patchRequestMeta = useRequestMetaPatcher();
-  const { requestId } = useParams() as { requestId: string };
   const methodDropdownRef = useRef<DropdownHandle>(null);
   const dropdownRef = useRef<DropdownHandle>(null);
   const inputRef = useRef<OneLineEditorHandle>(null);
@@ -92,31 +89,7 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
   const [currentInterval, setCurrentInterval] = useState<number | null>(null);
   const [currentTimeout, setCurrentTimeout] = useState<number | undefined>(undefined);
 
-  async function setFilePathAndStoreInLocalStorage() {
-    const options: SaveDialogOptions = {
-      title: 'Select Download Location',
-      buttonLabel: 'Save',
-    };
-    const defaultPath = window.localStorage.getItem('insomnia.sendAndDownloadLocation');
-
-    if (defaultPath) {
-      // NOTE: An error will be thrown if defaultPath is supplied but not a String
-      options.defaultPath = defaultPath;
-    }
-
-    const { filePath } = await window.dialog.showSaveDialog(options);
-    if (!filePath) {
-      return null;
-    }
-    window.localStorage.setItem('insomnia.sendAndDownloadLocation', filePath);
-    return filePath;
-  }
-
-  const sendThenSetFilePath = useCallback(async (filePath?: string) => {
-    if (!activeRequest) {
-      return;
-    }
-
+  const sendThenSetFilePath = useCallback(async () => {
     // Update request stats
     models.stats.incrementExecutedRequests();
     window.main.trackSegmentEvent({
@@ -130,54 +103,59 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
     setLoading(true);
     try {
       const responsePatch = await network.send(activeRequest._id, activeEnvironment._id);
-      const headers = responsePatch.headers || [];
-      const header = getContentDispositionHeader(headers);
-      const nameFromHeader = header ? contentDisposition.parse(header.value).parameters.filename : null;
-
-      if (
-        responsePatch.bodyPath &&
-        responsePatch.statusCode &&
-        responsePatch.statusCode >= 200 &&
-        responsePatch.statusCode < 300
-      ) {
-        const sanitizedExtension = responsePatch.contentType && mimeExtension(responsePatch.contentType);
-        const extension = sanitizedExtension || 'unknown';
-        const name =
-          nameFromHeader || `${activeRequest.name.replace(/\s/g, '-').toLowerCase()}.${extension}`;
-        let filename: string | null;
-
-        if (filePath) {
-          filename = path.join(filePath, name);
-        } else {
-          filename = await setFilePathAndStoreInLocalStorage();
-        }
-
-        if (!filename) {
-          return;
-        }
-
-        const to = fs.createWriteStream(filename);
-        const readStream = models.response.getBodyStream(responsePatch);
-
-        if (!readStream || typeof readStream === 'string') {
-          return;
-        }
-
-        readStream.pipe(to);
-
-        readStream.on('end', async () => {
-          responsePatch.error = `Saved to ${filename}`;
-          await models.response.create(responsePatch, settings.maxHistoryResponses);
-        });
-
-        readStream.on('error', async err => {
-          console.warn('Failed to download request after sending', responsePatch.bodyPath, err);
-          await models.response.create(responsePatch, settings.maxHistoryResponses);
-        });
-      } else {
+      const is2XXWithBodyPath = responsePatch.statusCode && responsePatch.statusCode >= 200 && responsePatch.statusCode < 300 && responsePatch.bodyPath;
+      if (!is2XXWithBodyPath) {
         // Save the bad responses so failures are shown still
         await models.response.create(responsePatch, settings.maxHistoryResponses);
+        setLoading(false);
+        return;
       }
+      let downloadPathAndName = '';
+      if (downloadPath) {
+        const sanitizedExtension = responsePatch.contentType && mimeExtension(responsePatch.contentType);
+        const extension = sanitizedExtension || 'unknown';
+        const headers = responsePatch.headers || [];
+        const header = getContentDispositionHeader(headers);
+        const nameFromHeader = header ? contentDisposition.parse(header.value).parameters.filename : null;
+        const name = nameFromHeader || `${activeRequest.name.replace(/\s/g, '-').toLowerCase()}.${extension}`;
+        downloadPathAndName = path.join(downloadPath, name);
+      }
+      if (!downloadPath) {
+        const defaultPath = window.localStorage.getItem('insomnia.sendAndDownloadLocation');
+        const { filePath } = await window.dialog.showSaveDialog({
+          title: 'Select Download Location',
+          buttonLabel: 'Save',
+          // NOTE: An error will be thrown if defaultPath is supplied but not a String
+          ...(defaultPath ? { defaultPath } : {}),
+        });
+        if (!filePath) {
+          setLoading(false);
+          return;
+        }
+        window.localStorage.setItem('insomnia.sendAndDownloadLocation', filePath);
+        downloadPathAndName = filePath;
+      }
+      invariant(downloadPathAndName, 'filename should be set by now');
+
+      const to = fs.createWriteStream(downloadPathAndName);
+      const readStream = models.response.getBodyStream(responsePatch);
+      if (!readStream || typeof readStream === 'string') {
+        setLoading(false);
+        return;
+      }
+      readStream.pipe(to);
+      readStream.on('end', async () => {
+        responsePatch.error = `Saved to ${downloadPathAndName}`;
+        await models.response.create(responsePatch, settings.maxHistoryResponses);
+        setLoading(false);
+        return;
+      });
+      readStream.on('error', async err => {
+        console.warn('Failed to download request after sending', responsePatch.bodyPath, err);
+        await models.response.create(responsePatch, settings.maxHistoryResponses);
+        setLoading(false);
+        return;
+      });
     } catch (err) {
       showAlert({
         title: 'Unexpected Request Failure',
@@ -190,13 +168,9 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
           </div>
         ),
       });
-    } finally {
-      // Unset active response because we just made a new one
-      // TODO: remove this with the redux fallback to first element
-      await patchRequestMeta(activeRequest._id, { activeResponseId: null });
       setLoading(false);
     }
-  }, [activeEnvironment._id, activeRequest, setLoading, settings.maxHistoryResponses, settings.preferredHttpVersion, patchRequestMeta]);
+  }, [activeEnvironment._id, activeRequest._id, activeRequest.authentication?.type, activeRequest.body.mimeType, activeRequest.name, downloadPath, setLoading, settings.maxHistoryResponses, settings.preferredHttpVersion]);
 
   const handleSend = useCallback(async () => {
     if (!activeRequest) {
@@ -237,15 +211,22 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
         });
       }
     }
-    // Unset active response because we just made a new one
-    await patchRequestMeta(activeRequest._id, { activeResponseId: null });
     setLoading(false);
   }, [activeEnvironment._id, activeRequest, setLoading, settings.maxHistoryResponses, settings.preferredHttpVersion, patchRequestMeta]);
-
-  const send = useCallback(() => {
+  const fetcher = useFetcher();
+  const { organizationId, projectId, workspaceId, requestId } = useParams() as { organizationId: string; projectId: string; workspaceId: string; requestId: string };
+  const connect = (connectParams: ConnectActionParams) => {
+    fetcher.submit(JSON.stringify(connectParams),
+      {
+        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${requestId}/connect`,
+        method: 'post',
+        encType: 'application/json',
+      });
+  };
+  const send = () => {
     setCurrentTimeout(undefined);
     if (downloadPath) {
-      sendThenSetFilePath(downloadPath);
+      sendThenSetFilePath();
       return;
     }
     if (isEventStreamRequest(activeRequest)) {
@@ -262,9 +243,7 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
           parameters: activeRequest.parameters.filter(p => !p.disabled),
           workspaceCookieJar,
         }, renderContext);
-        window.main.curl.open({
-          requestId: activeRequest._id,
-          workspaceId,
+        connect({
           url: joinUrlAndQueryString(rendered.url, buildQueryStringFromParams(rendered.parameters)),
           headers: rendered.headers,
           authentication: rendered.authentication,
@@ -275,7 +254,7 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
       return;
     }
     handleSend();
-  }, [activeEnvironment._id, activeWorkspace, downloadPath, handleSend, activeRequest, sendThenSetFilePath]);
+  };
 
   useInterval(send, currentInterval ? currentInterval : null);
   useTimeoutWhen(send, currentTimeout, !!currentTimeout);
