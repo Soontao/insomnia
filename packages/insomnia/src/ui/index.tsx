@@ -35,7 +35,6 @@ import {
 } from './redux/modules/global';
 import { ErrorRoute } from './routes/error';
 import Root from './routes/root';
-import { initializeSentry } from './sentry';
 
 const Project = lazy(() => import('./routes/project'));
 const Workspace = lazy(() => import('./routes/workspace'));
@@ -43,7 +42,6 @@ const UnitTest = lazy(() => import('./routes/unit-test'));
 const Debug = lazy(() => import('./routes/debug'));
 const Design = lazy(() => import('./routes/design'));
 
-initializeSentry();
 initializeLogging();
 // Handy little helper
 document.body.setAttribute('data-platform', process.platform);

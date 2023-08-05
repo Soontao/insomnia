@@ -1,5 +1,4 @@
-import electron, { app, ipcMain, session } from 'electron';
-import { BrowserWindow } from 'electron';
+import electron, { BrowserWindow, app, ipcMain, session } from 'electron';
 import contextMenu from 'electron-context-menu';
 import installExtension, { REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS } from 'electron-devtools-installer';
 import path from 'path';
@@ -13,7 +12,6 @@ import { registergRPCHandlers } from './main/ipc/grpc';
 import { registerMainHandlers } from './main/ipc/main';
 import { registerCurlHandlers } from './main/network/curl';
 import { registerWebSocketHandlers } from './main/network/websocket';
-import { sentryWatchAnalyticsEnabled } from './main/sentry';
 import { checkIfRestartNeeded } from './main/squirrel-startup';
 import * as updates from './main/updates';
 import * as windowUtils from './main/window-utils';
@@ -74,7 +72,7 @@ app.on('ready', async () => {
   };
   disableSpellcheckerDownload();
 
-  if (isDevelopment()) {
+  if (isDevelopment() && process.env.SKIP_CHROME_EXT === undefined) {
     try {
       const extensions = [REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS];
       const extensionsPlural = extensions.length > 0 ? 's' : '';
@@ -88,7 +86,6 @@ app.on('ready', async () => {
   // Init some important things first
   await database.init(models.types());
   await _createModelInstances();
-  sentryWatchAnalyticsEnabled();
   windowUtils.init();
   await _launchApp();
 

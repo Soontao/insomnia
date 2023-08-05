@@ -4,7 +4,7 @@ import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 import type { Environment } from '../../../models/environment';
 import { RootLoaderData } from '../../routes/root';
 import { WorkspaceLoaderData } from '../../routes/workspace';
-import { Dropdown, DropdownButton, type DropdownHandle, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
+import { Dropdown, DropdownButton, DropdownItem, DropdownSection, ItemContent, type DropdownHandle } from '../base/dropdown';
 import { useDocBodyKeyboardShortcuts } from '../keydown-binder';
 import { showModal } from '../modals/index';
 import { WorkspaceEnvironmentsEditModal } from '../modals/workspace-environments-edit-modal';
@@ -80,8 +80,8 @@ export const EnvironmentsDropdown: FC<Props> = () => {
         {subEnvironments.map(environment => (
           <DropdownItem key={environment._id}>
             <ItemContent
-              icon="random"
-              label={<span>Use <strong>{environment.name}</strong></span>}
+              icon={activeEnvironment?._id === environment?._id ? 'check' : 'random'}
+              label={<span><strong>{environment.name}</strong></span>}
               iconStyle={{
                 ...(environment.color ? { color: environment.color } : {}),
               }}
@@ -101,7 +101,7 @@ export const EnvironmentsDropdown: FC<Props> = () => {
 
       <DropdownItem>
         <ItemContent
-          icon="empty"
+          icon={activeEnvironment?._id === baseEnvironment?._id ? 'check' : 'random'}
           label="No Environment"
           onClick={() => {
             setActiveEnvironmentFetcher.submit({

@@ -85,8 +85,6 @@ const StyledDropdownButton = styled(DropdownButton).attrs({
 const SearchFormControl = styled.div({
   position: 'relative',
   fontSize: 'var(--font-size-md)',
-  maxWidth: '400px',
-  minWidth: '200px',
 });
 
 const SearchInput = styled.input({
@@ -108,6 +106,8 @@ const PaneHeaderToolbar = styled.div({
   zIndex: 1,
   paddingTop: 'var(--padding-md)',
   paddingBottom: 'var(--padding-sm)',
+  paddingLeft: 'var(--padding-md)',
+  paddingRight: 'var(--padding-md)',
   backgroundColor: 'var(--color-bg)',
 });
 
@@ -874,16 +874,7 @@ const ProjectRoute: FC = () => {
             />
           }
           renderPaneOne={
-            <Pane
-              style={
-                !hasWorkspaces
-                  ? {
-                    gridTemplateRows: 'auto 1fr',
-                    gridTemplateColumns: '1fr',
-                  }
-                  : undefined
-              }
-            >
+            <div>
               <PaneHeaderToolbar>
                 <SearchFormControl className="form-control form-control--outlined no-margin">
                   <SearchInput
@@ -976,6 +967,17 @@ const ProjectRoute: FC = () => {
                   </Dropdown>
                 </div>
               </PaneHeaderToolbar>
+              <Pane
+                style={
+                  !hasWorkspaces
+                    ? {
+                      gridTemplateRows: 'auto 1fr',
+                      gridTemplateColumns: '1fr',
+                    }
+                    : undefined
+                }
+              >
+
               {hasWorkspaces &&
                 workspaces.map(workspace => (
                   <WorkspaceCard
@@ -1013,6 +1015,8 @@ const ProjectRoute: FC = () => {
                 />
               )}
             </Pane>
+            </div>
+
           }
         />
         {isGitRepositoryCloneModalOpen && (
