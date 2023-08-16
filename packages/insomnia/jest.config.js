@@ -1,3 +1,5 @@
+const path = require('node:path');
+
 /** @type { import('@jest/types').Config.InitialOptions } */
 module.exports = {
   preset: '../../jest-preset.js',
@@ -15,8 +17,8 @@ module.exports = {
   verbose: true,
   moduleNameMapper: {
     '\\.(css|less|png|svg)$': '<rootDir>/src/__mocks__/dummy.ts',
-    'styled-components': '<rootDir>/node_modules/styled-components',
-    'jsonpath-plus': '<rootDir>/node_modules/jsonpath-plus/dist/index-node-cjs.cjs',
+    'styled-components': path.join(__dirname, '../../node_modules/styled-components'),
+    'jsonpath-plus': path.join(__dirname, '../../node_modules/jsonpath-plus/dist/index-node-cjs.cjs'),
   },
   testTimeout: 30 * 1000,
   collectCoverage: !!process.env.CI,

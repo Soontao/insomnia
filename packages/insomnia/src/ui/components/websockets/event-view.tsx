@@ -41,9 +41,7 @@ export const MessageEventView: FC<Props<CurlMessageEvent | WebSocketMessageEvent
   let raw = event.data.toString();
   // Best effort to parse the binary data as a string
   try {
-    // @ts-expect-error -- should be fine
     if ('data' in event && typeof event.data === 'object' && 'data' in event.data && Array.isArray(event.data.data)) {
-      // @ts-expect-error -- should be fine
       raw = Buffer.from(event.data.data).toString();
     }
   } catch (err) {
@@ -106,30 +104,14 @@ export const MessageEventView: FC<Props<CurlMessageEvent | WebSocketMessageEvent
         />
       </PreviewPaneButtons>
       <PreviewPaneContents>
-        {previewMode === PREVIEW_MODE_FRIENDLY &&
-          <CodeEditor
-            hideLineNumbers
-            mode={'text/json'}
-            defaultValue={pretty}
-            uniquenessKey={event._id}
-            readOnly
-          />}
-        {previewMode === PREVIEW_MODE_SOURCE &&
-          <CodeEditor
-            hideLineNumbers
-            mode={'text/json'}
-            defaultValue={raw}
-            uniquenessKey={event._id}
-            readOnly
-          />}
-        {previewMode === PREVIEW_MODE_RAW &&
-          <CodeEditor
-            hideLineNumbers
-            mode={'text/plain'}
-            defaultValue={raw}
-            uniquenessKey={event._id}
-            readOnly
-          />}
+        <CodeEditor
+          id="websocket-body-preview"
+          hideLineNumbers
+          mode={previewMode === PREVIEW_MODE_RAW ? 'text/plain' : 'text/json'}
+          defaultValue={previewMode === PREVIEW_MODE_FRIENDLY ? pretty : raw}
+          uniquenessKey={event._id}
+          readOnly
+        />
       </PreviewPaneContents>
     </PreviewPane>
   );

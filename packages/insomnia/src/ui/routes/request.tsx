@@ -1,7 +1,15 @@
+import { createWriteStream } from 'node:fs';
+import path from 'node:path';
+
+import * as contentDisposition from 'content-disposition';
+import { extension as mimeExtension } from 'mime-types';
 import { ActionFunction, LoaderFunction, redirect } from 'react-router-dom';
 
 import { CONTENT_TYPE_EVENT_STREAM, CONTENT_TYPE_GRAPHQL, CONTENT_TYPE_JSON, METHOD_GET, METHOD_POST } from '../../common/constants';
-import { delay } from '../../common/misc';
+import { ChangeBufferEvent, database } from '../../common/database';
+import { getContentDispositionHeader } from '../../common/misc';
+import { RENDER_PURPOSE_SEND, RenderedRequest } from '../../common/render';
+import { ResponsePatch } from '../../main/network/libcurl-promise';
 import * as models from '../../models';
 import { BaseModel } from '../../models';
 import { CookieJar } from '../../models/cookie-jar';
@@ -9,11 +17,12 @@ import { GrpcRequest, isGrpcRequestId } from '../../models/grpc-request';
 import { GrpcRequestMeta } from '../../models/grpc-request-meta';
 import * as requestOperations from '../../models/helpers/request-operations';
 import { isEventStreamRequest, isRequest, Request, RequestAuthentication, RequestHeader } from '../../models/request';
-import { RequestMeta } from '../../models/request-meta';
+import { isRequestMeta, RequestMeta } from '../../models/request-meta';
 import { RequestVersion } from '../../models/request-version';
 import { Response } from '../../models/response';
 import { isWebSocketRequestId, WebSocketRequest } from '../../models/websocket-request';
 import { WebSocketResponse } from '../../models/websocket-response';
+import { fetchRequestData, responseTransform, sendCurlAndWriteTimeline, tryToInterpolateRequest } from '../../network/network';
 import { invariant } from '../../utils/invariant';
 import { SegmentEvent } from '../analytics';
 import { updateMimeType } from '../components/dropdowns/content-type-dropdown';
@@ -250,11 +259,103 @@ export const connectAction: ActionFunction = async ({ request, params }) => {
       cookieJar: rendered.cookieJar,
     });
   }
-  // TODO: remove hack, show loading and reload after connection create response and set activeResponseId
-  await delay(2000);
-  return null;
+  // HACK: even more elaborate hack to get the request to update
+  return new Promise(resolve => {
+    database.onChange(async (changes: ChangeBufferEvent[]) => {
+      for (const change of changes) {
+        const [event, doc] = change;
+        if (isRequestMeta(doc) && doc.parentId === requestId && event === 'update') {
+          console.log('Response meta received', doc);
+          resolve(null);
+        }
+      }
+    });
+  });
 };
+const writeToDownloadPath = (downloadPathAndName: string, responsePatch: ResponsePatch, requestMeta: RequestMeta, maxHistoryResponses: number) => {
+  invariant(downloadPathAndName, 'filename should be set by now');
 
+  const to = createWriteStream(downloadPathAndName);
+  const readStream = models.response.getBodyStream(responsePatch);
+  if (!readStream || typeof readStream === 'string') {
+    return null;
+  }
+  readStream.pipe(to);
+
+  return new Promise(resolve => {
+    readStream.on('end', async () => {
+      responsePatch.error = `Saved to ${downloadPathAndName}`;
+      const response = await models.response.create(responsePatch, maxHistoryResponses);
+      await models.requestMeta.update(requestMeta, { activeResponseId: response._id });
+      resolve(null);
+    });
+    readStream.on('error', async err => {
+      console.warn('Failed to download request after sending', responsePatch.bodyPath, err);
+      const response = await models.response.create(responsePatch, maxHistoryResponses);
+      await models.requestMeta.update(requestMeta, { activeResponseId: response._id });
+      resolve(null);
+    });
+  });
+
+};
+export interface SendActionParams {
+  renderedRequest: RenderedRequest;
+  shouldPromptForPathAfterResponse?: boolean;
+}
+export const sendAction: ActionFunction = async ({ request, params }) => {
+  const { requestId, workspaceId } = params;
+  invariant(typeof requestId === 'string', 'Request ID is required');
+  const req = await requestOperations.getById(requestId) as Request;
+  invariant(req, 'Request not found');
+  invariant(workspaceId, 'Workspace ID is required');
+  const {
+    environment,
+    settings,
+    clientCertificates,
+    caCert,
+    activeEnvironmentId } = await fetchRequestData(requestId);
+  const { renderedRequest, shouldPromptForPathAfterResponse } = await request.json() as SendActionParams;
+  const renderResult = await tryToInterpolateRequest(req, environment._id, RENDER_PURPOSE_SEND);
+
+  const response = await sendCurlAndWriteTimeline(
+    renderedRequest,
+    clientCertificates,
+    caCert,
+    settings,
+  );
+  const requestMeta = await models.requestMeta.getByParentId(requestId);
+  invariant(requestMeta, 'RequestMeta not found');
+  const responsePatch = await responseTransform(response, activeEnvironmentId, renderedRequest, renderResult.context);
+  const is2XXWithBodyPath = responsePatch.statusCode && responsePatch.statusCode >= 200 && responsePatch.statusCode < 300 && responsePatch.bodyPath;
+  const shouldWriteToFile = shouldPromptForPathAfterResponse && is2XXWithBodyPath;
+  if (!shouldWriteToFile) {
+    const response = await models.response.create(responsePatch, settings.maxHistoryResponses);
+    await models.requestMeta.update(requestMeta, { activeResponseId: response._id });
+    // setLoading(false);
+    return null;
+  }
+  if (requestMeta.downloadPath) {
+    const header = getContentDispositionHeader(responsePatch.headers || []);
+    const name = header
+      ? contentDisposition.parse(header.value).parameters.filename
+      : `${req.name.replace(/\s/g, '-').toLowerCase()}.${responsePatch.contentType && mimeExtension(responsePatch.contentType) || 'unknown'}`;
+    return writeToDownloadPath(path.join(requestMeta.downloadPath, name), responsePatch, requestMeta, settings.maxHistoryResponses);
+  } else {
+    const defaultPath = window.localStorage.getItem('insomnia.sendAndDownloadLocation');
+    const { filePath } = await window.dialog.showSaveDialog({
+      title: 'Select Download Location',
+      buttonLabel: 'Save',
+      // NOTE: An error will be thrown if defaultPath is supplied but not a String
+      ...(defaultPath ? { defaultPath } : {}),
+    });
+    if (!filePath) {
+      // setLoading(false);
+      return null;
+    }
+    window.localStorage.setItem('insomnia.sendAndDownloadLocation', filePath);
+    return writeToDownloadPath(filePath, responsePatch, requestMeta, settings.maxHistoryResponses);
+  }
+};
 export const deleteAllResponsesAction: ActionFunction = async ({ params }) => {
   const { workspaceId, requestId } = params;
   invariant(typeof requestId === 'string', 'Request ID is required');
@@ -303,26 +404,3 @@ export const deleteResponseAction: ActionFunction = async ({ request, params }) 
 
   return null;
 };
-
-// const RequestRoute = () => {
-//   const { requestId } = useParams() as { requestId: string };
-//   const activeEnvironment = useSelector(selectActiveEnvironment);
-//   return (<>
-//     <ErrorBoundary showAlert>
-//       {isGrpcRequestId(requestId) ? (
-//         <GrpcRequestPane />
-//       ) : (
-//         isWebSocketRequestId(requestId) ? (
-//           <WebSocketRequestPane
-//             environment={activeEnvironment}
-//           />
-//         ) : (
-//           <RequestPane
-//             environmentId={activeEnvironment ? activeEnvironment._id : ''}
-//           />
-//         )
-//       )}
-//     </ErrorBoundary>
-//   </>);
-// };
-// export default RequestRoute;

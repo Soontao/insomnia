@@ -1,5 +1,5 @@
 import type { IRuleResult } from '@stoplight/spectral-core';
-import { generate, runTests, Test } from 'insomnia-testing';
+import { generate, runTests, type Test } from 'insomnia-testing';
 import path from 'path';
 import { ActionFunction, redirect } from 'react-router-dom';
 
@@ -316,13 +316,7 @@ export const runAllTestsAction: ActionFunction = async ({
 
   const src = generate([{ name: 'My Suite', suites: [], tests }]);
 
-  const workspaceMeta = await models.workspaceMeta.getOrCreateByParentId(
-    workspaceId
-  );
-
-  const sendRequest = getSendRequestCallback(
-    workspaceMeta?.activeEnvironmentId || undefined
-  );
+  const sendRequest = getSendRequestCallback();
 
   const results = await runTests(src, { sendRequest });
 
@@ -435,13 +429,8 @@ export const runTestAction: ActionFunction = async ({ params }) => {
     },
   ];
   const src = generate([{ name: 'My Suite', suites: [], tests }]);
-  const workspaceMeta = await models.workspaceMeta.getOrCreateByParentId(
-    unitTest.parentId
-  );
 
-  const sendRequest = getSendRequestCallback(
-    workspaceMeta?.activeEnvironmentId || undefined
-  );
+  const sendRequest = getSendRequestCallback();
 
   const results = await runTests(src, { sendRequest });
 
