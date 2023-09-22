@@ -21,10 +21,10 @@ export interface OneLineEditorProps {
   id: string;
   onChange: (value: string) => void;
   onKeyDown?: (event: KeyboardEvent, value: string) => void;
-  onPaste?: (event: ClipboardEvent) => void;
   placeholder?: string;
   readOnly?: boolean;
   type?: string;
+  onPaste?: (text: string) => void;
 }
 
 export interface OneLineEditorHandle {
@@ -37,10 +37,10 @@ export const OneLineEditor = forwardRef<OneLineEditorHandle, OneLineEditorProps>
   id,
   onChange,
   onKeyDown,
-  onPaste,
   placeholder,
   readOnly,
   type,
+  onPaste,
 }, ref) => {
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const codeMirror = useRef<CodeMirror.EditorFromTextArea | null>(null);
@@ -108,8 +108,19 @@ export const OneLineEditor = forwardRef<OneLineEditorHandle, OneLineEditorProps>
     codeMirror.current.on('beforeChange', (_: CodeMirror.Editor, change: CodeMirror.EditorChangeCancellable) => {
       const isPaste = change.text && change.text.length > 1;
       if (isPaste) {
+        if (change.text[0].startsWith('curl')) {
+          change.cancel();
+          return;
+        }
         // If we're in single-line mode, merge all changed lines into one
         change.update?.(change.from, change.to, [change.text.join('').replace(/\n/g, ' ')]);
+      }
+    });
+    codeMirror.current.on('paste', (_, e: ClipboardEvent) => {
+      const text = e.clipboardData?.getData('text/plain');
+      // TODO: watch out for pasting urls that are curl<something>, e.g. curl.se would be picked up here without the space
+      if (onPaste && text && text.startsWith('curl ')) {
+        onPaste(text);
       }
     });
 
@@ -187,12 +198,6 @@ export const OneLineEditor = forwardRef<OneLineEditorHandle, OneLineEditorProps>
     codeMirror.current?.on('changes', fn);
     return () => codeMirror.current?.off('changes', fn);
   }, [onChange]);
-
-  useEffect(() => {
-    const handlePaste = (_: CodeMirror.Editor, e: ClipboardEvent) => onPaste?.(e);
-    codeMirror.current?.on('paste', handlePaste);
-    return () => codeMirror.current?.on('paste', handlePaste);
-  }, [onPaste]);
 
   useEffect(() => window.main.on('context-menu-command', (_, { key, tag }) =>
     id === key && codeMirror.current?.replaceSelection(tag)), [id]);

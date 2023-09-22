@@ -133,6 +133,8 @@ export enum UpdateURL {
 // API
 export const getApiBaseURL = () => env.INSOMNIA_API_URL || 'https://api.insomnia.rest';
 
+export const getUpdatesBaseURL = () => env.INSOMNIA_UPDATES_URL || 'https://updates.insomnia.rest';
+
 // App website
 export const getAppWebsiteBaseURL = () => env.INSOMNIA_APP_WEBSITE_URL || 'https://app.insomnia.rest';
 
@@ -315,7 +317,8 @@ export type SortOrder =
   | 'created-desc'
   | 'http-method'
   | 'type-desc'
-  | 'type-asc';
+  | 'type-asc'
+  | 'type-manual';
 export const SORT_NAME_ASC = 'name-asc';
 export const SORT_NAME_DESC = 'name-desc';
 export const SORT_CREATED_ASC = 'created-asc';
@@ -325,7 +328,9 @@ export const SORT_MODIFIED_DESC = 'modified-desc';
 export const SORT_HTTP_METHOD = 'http-method';
 export const SORT_TYPE_DESC = 'type-desc';
 export const SORT_TYPE_ASC = 'type-asc';
+export const SORT_TYPE_MANUAL = 'type-manual';
 export const SORT_ORDERS = [
+  SORT_TYPE_MANUAL,
   SORT_NAME_ASC,
   SORT_NAME_DESC,
   SORT_CREATED_ASC,
@@ -335,6 +340,7 @@ export const SORT_ORDERS = [
   SORT_TYPE_ASC,
 ] as const;
 export const sortOrderName: Record<SortOrder, string> = {
+  [SORT_TYPE_MANUAL]: 'Manual',
   [SORT_NAME_ASC]: 'Name Ascending (A-Z)',
   [SORT_NAME_DESC]: 'Name Descending (Z-A)',
   [SORT_CREATED_ASC]: 'Oldest First',

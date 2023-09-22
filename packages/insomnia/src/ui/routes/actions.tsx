@@ -11,11 +11,14 @@ import { database as db } from '../../common/database';
 import { importResourcesToWorkspace, scanResources } from '../../common/import';
 import { generateId } from '../../common/misc';
 import * as models from '../../models';
+import { getById, update } from '../../models/helpers/request-operations';
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
 import { DEFAULT_PROJECT_ID, isRemoteProject } from '../../models/project';
 import { isRequest, Request } from '../../models/request';
+import { isRequestGroup, isRequestGroupId } from '../../models/request-group';
 import { UnitTest } from '../../models/unit-test';
 import { isCollection, Workspace } from '../../models/workspace';
+import { WorkspaceMeta } from '../../models/workspace-meta';
 import { getSendRequestCallback } from '../../network/unit-test-feature';
 import { initializeLocalBackendProjectAndMarkForSync } from '../../sync/vcs/initialize-backend-project';
 import { getVCS } from '../../sync/vcs/vcs';
@@ -103,6 +106,8 @@ export const createNewWorkspaceAction: ActionFunction = async ({
     scope,
     parentId: projectId,
   });
+
+  console.log({ workspace, name });
 
   if (scope === 'design') {
     await models.apiSpec.getOrCreateForParentId(workspace._id);
@@ -254,6 +259,14 @@ export const updateWorkspaceAction: ActionFunction = async ({ request }) => {
   return null;
 };
 
+export const updateWorkspaceMetaAction: ActionFunction = async ({ request, params }) => {
+  const { workspaceId } = params;
+  invariant(typeof workspaceId === 'string', 'Workspace ID is required');
+  const patch = await request.json() as Partial<WorkspaceMeta>;
+  await models.workspaceMeta.updateByParentId(workspaceId, patch);
+  return null;
+};
+
 // Test Suite
 export const createNewTestSuiteAction: ActionFunction = async ({
   request,
@@ -304,7 +317,6 @@ export const runAllTestsAction: ActionFunction = async ({
     parentId: testSuiteId,
   });
   invariant(unitTests, 'No unit tests found');
-  console.log('unitTests', unitTests);
 
   const tests: Test[] = unitTests
     .filter(t => t !== null)
@@ -891,17 +903,18 @@ export const createNewCaCertificateAction: ActionFunction = async ({ request }) 
 
 export const updateCaCertificateAction: ActionFunction = async ({ request }) => {
   const patch = await request.json();
-  const caCertificate = await models.caCertificate.getById(patch.parentId);
+  const caCertificate = await models.caCertificate.getById(patch._id);
   invariant(caCertificate, 'CA Certificate not found');
   await models.caCertificate.update(caCertificate, patch);
   return null;
 };
 
-export const deleteCaCertificateAction: ActionFunction = async ({ request }) => {
-  const { certificateId } = await request.json();
-  const caCertificate = await models.caCertificate.getById(certificateId);
+export const deleteCaCertificateAction: ActionFunction = async ({ params }) => {
+  const { workspaceId } = params;
+  invariant(typeof workspaceId === 'string', 'Workspace ID is required');
+  const caCertificate = await models.caCertificate.findByParentId(workspaceId);
   invariant(caCertificate, 'CA Certificate not found');
-  await models.caCertificate.removeWhere(certificateId);
+  await models.caCertificate.removeWhere(workspaceId);
   return null;
 };
 
@@ -913,22 +926,62 @@ export const createNewClientCertificateAction: ActionFunction = async ({ request
 
 export const updateClientCertificateAction: ActionFunction = async ({ request }) => {
   const patch = await request.json();
-  const clientCertificate = await models.clientCertificate.getById(patch.parentId);
+  const clientCertificate = await models.clientCertificate.getById(patch._id);
   invariant(clientCertificate, 'CA Certificate not found');
   await models.clientCertificate.update(clientCertificate, patch);
   return null;
 };
 
 export const deleteClientCertificateAction: ActionFunction = async ({ request }) => {
-  const { certificateId } = await request.json();
-  const clientCertificate = await models.clientCertificate.getById(certificateId);
+  const { _id } = await request.json();
+  const clientCertificate = await models.clientCertificate.getById(_id);
   invariant(clientCertificate, 'CA Certificate not found');
-  await models.clientCertificate.remove(certificateId);
+  await models.clientCertificate.remove(clientCertificate);
   return null;
 };
 
 export const updateSettingsAction: ActionFunction = async ({ request }) => {
   const patch = await request.json();
   await models.settings.patch(patch);
+  return null;
+};
+
+const getCollectionItem = async (id: string) => {
+  let item;
+  if (isRequestGroupId(id)) {
+    item = await models.requestGroup.getById(id);
+  } else {
+    item = await getById(id);
+  }
+
+  invariant(item, 'Item not found');
+
+  return item;
+};
+
+export const reorderCollectionAction: ActionFunction = async ({ request, params }) => {
+  const { workspaceId }  = params;
+  invariant(typeof workspaceId === 'string', 'Workspace ID is required');
+  const { id, targetId, dropPosition, metaSortKey } = await request.json();
+  invariant(typeof id === 'string', 'ID is required');
+  invariant(typeof targetId === 'string', 'Target ID is required');
+  invariant(typeof dropPosition === 'string', 'Drop position is required');
+  invariant(typeof metaSortKey === 'number', 'MetaSortKey position is required');
+
+  if (id === targetId) {
+    return null;
+  }
+
+  const item = await getCollectionItem(id);
+  const targetItem = await getCollectionItem(targetId);
+
+  const parentId = dropPosition === 'after' && isRequestGroup(targetItem) ? targetItem._id : targetItem.parentId;
+
+  if (isRequestGroup(item)) {
+    await models.requestGroup.update(item, { parentId, metaSortKey });
+  } else {
+    await update(item, { parentId, metaSortKey });
+  }
+
   return null;
 };

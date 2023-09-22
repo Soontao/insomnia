@@ -1,3 +1,4 @@
+
 import electron, { BrowserWindow, app, ipcMain, session } from 'electron';
 import contextMenu from 'electron-context-menu';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
@@ -7,6 +8,7 @@ import { userDataFolder } from '../config/config.json';
 import { changelogUrl, getAppVersion, isDevelopment, isMac } from './common/constants';
 import { database } from './common/database';
 import log, { initializeLogging } from './common/log';
+import { backupIfNewerVersionAvailable } from './main/backup';
 import { registerElectronHandlers } from './main/ipc/electron';
 import { registergRPCHandlers } from './main/ipc/grpc';
 import { registerMainHandlers } from './main/ipc/main';
@@ -72,7 +74,7 @@ app.on('ready', async () => {
   };
   disableSpellcheckerDownload();
 
-  if (isDevelopment() && process.env.SKIP_CHROME_EXT === undefined) {
+  if (isDevelopment() && process.env.SKIP_CHROME_EXT !== undefined) {
     try {
       const extensions = [REACT_DEVELOPER_TOOLS];
       const extensionsPlural = extensions.length > 0 ? 's' : '';
@@ -223,7 +225,8 @@ async function _trackStats() {
     launches: oldStats.launches + 1,
   });
 
-  ipcMain.once('halfSecondAfterAppStart', () => {
+  ipcMain.once('halfSecondAfterAppStart', async () => {
+    backupIfNewerVersionAvailable();
     const { currentVersion, launches, lastVersion } = stats;
 
     const firstLaunch = launches === 1;
@@ -239,7 +242,7 @@ async function _trackStats() {
       message: `Updated to ${currentVersion}`,
     };
     // Wait a bit before showing the user because the app just launched.
-    setTimeout(() => {
+    setTimeout(async () => {
       for (const window of BrowserWindow.getAllWindows()) {
         // @ts-expect-error -- TSCONVERSION likely needs to be window.webContents.send instead
         window.send('show-notification', notification);

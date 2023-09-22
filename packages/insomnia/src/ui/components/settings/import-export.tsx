@@ -45,7 +45,9 @@ export const ImportExport: FC<Props> = ({ hideSettingsModal }) => {
     exportAllToFile(projectName, workspacesForActiveProject);
     hideSettingsModal();
   };
-
+ // here we should list all the folders which contain insomnia.*.db files
+ // and have some big red button to overwrite the current data with the backup
+ // and once complete trigger an app restart?
   return (
     <Fragment>
       <div data-testid="import-export-tab">
@@ -103,7 +105,6 @@ export const ImportExport: FC<Props> = ({ hideSettingsModal }) => {
             Create Run Button
           </Link>
         </div>
-        <p className="italic faint">* Tip: You can also paste Curl commands into the URL bar</p>
       </div>
       {isImportModalOpen && (
         <ImportModal
@@ -116,8 +117,9 @@ export const ImportExport: FC<Props> = ({ hideSettingsModal }) => {
           defaultWorkspaceId={workspaceId}
         />
       )}
-      {isExportModalOpen && (
+      {isExportModalOpen && workspaceData?.activeWorkspace && (
         <ExportRequestsModal
+          workspace={workspaceData.activeWorkspace}
           onHide={() => setIsExportModalOpen(false)}
         />
       )}

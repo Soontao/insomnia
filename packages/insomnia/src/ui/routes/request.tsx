@@ -5,6 +5,7 @@ import * as contentDisposition from 'content-disposition';
 import { extension as mimeExtension } from 'mime-types';
 import { ActionFunction, LoaderFunction, redirect } from 'react-router-dom';
 
+import { version } from '../../../package.json';
 import { CONTENT_TYPE_EVENT_STREAM, CONTENT_TYPE_GRAPHQL, CONTENT_TYPE_JSON, METHOD_GET, METHOD_POST } from '../../common/constants';
 import { ChangeBufferEvent, database } from '../../common/database';
 import { getContentDispositionHeader } from '../../common/misc';
@@ -16,7 +17,7 @@ import { CookieJar } from '../../models/cookie-jar';
 import { GrpcRequest, isGrpcRequestId } from '../../models/grpc-request';
 import { GrpcRequestMeta } from '../../models/grpc-request-meta';
 import * as requestOperations from '../../models/helpers/request-operations';
-import { isEventStreamRequest, isRequest, Request, RequestAuthentication, RequestHeader } from '../../models/request';
+import { isEventStreamRequest, isRequest, Request, RequestAuthentication, RequestBody, RequestHeader, RequestParameter } from '../../models/request';
 import { isRequestMeta, RequestMeta } from '../../models/request-meta';
 import { RequestVersion } from '../../models/request-version';
 import { Response } from '../../models/response';
@@ -26,6 +27,7 @@ import { fetchRequestData, responseTransform, sendCurlAndWriteTimeline, tryToInt
 import { invariant } from '../../utils/invariant';
 import { SegmentEvent } from '../analytics';
 import { updateMimeType } from '../components/dropdowns/content-type-dropdown';
+import { CreateRequestType } from '../hooks/use-request';
 
 export interface WebSocketRequestLoaderData {
   activeRequest: WebSocketRequest;
@@ -50,11 +52,13 @@ export interface RequestLoaderData {
 }
 
 export const loader: LoaderFunction = async ({ params }): Promise<RequestLoaderData | WebSocketRequestLoaderData | GrpcRequestLoaderData> => {
-  const { requestId, workspaceId } = params;
+  const { organizationId, projectId, requestId, workspaceId } = params;
   invariant(requestId, 'Request ID is required');
   invariant(workspaceId, 'Workspace ID is required');
   const activeRequest = await requestOperations.getById(requestId);
-  invariant(activeRequest, 'Request not found');
+  if (!activeRequest) {
+    throw redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug`);
+  }
   const activeWorkspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
   invariant(activeWorkspaceMeta, 'Active workspace meta not found');
   // NOTE: loaders shouldnt mutate data, this should be moved somewhere else
@@ -93,7 +97,7 @@ export const loader: LoaderFunction = async ({ params }): Promise<RequestLoaderD
 export const createRequestAction: ActionFunction = async ({ request, params }) => {
   const { organizationId, projectId, workspaceId } = params;
   invariant(typeof workspaceId === 'string', 'Workspace ID is required');
-  const { requestType, parentId } = await request.json();
+  const { requestType, parentId, req } = await request.json() as { requestType: CreateRequestType; parentId?: string; req?: Request };
 
   let activeRequestId;
   if (requestType === 'HTTP') {
@@ -101,6 +105,7 @@ export const createRequestAction: ActionFunction = async ({ request, params }) =
       parentId: parentId || workspaceId,
       method: METHOD_GET,
       name: 'New Request',
+      headers: [{ name: 'User-Agent', value: `insomnia/${version}` }],
     }))._id;
   }
   if (requestType === 'gRPC') {
@@ -114,10 +119,8 @@ export const createRequestAction: ActionFunction = async ({ request, params }) =
       parentId: parentId || workspaceId,
       method: METHOD_POST,
       headers: [
-        {
-          name: 'Content-Type',
-          value: CONTENT_TYPE_JSON,
-        },
+        { name: 'User-Agent', value: `insomnia/${version}` },
+        { name: 'Content-Type', value: CONTENT_TYPE_JSON },
       ],
       body: {
         mimeType: CONTENT_TYPE_GRAPHQL,
@@ -132,10 +135,8 @@ export const createRequestAction: ActionFunction = async ({ request, params }) =
       method: METHOD_GET,
       url: '',
       headers: [
-        {
-          name: 'Accept',
-          value: CONTENT_TYPE_EVENT_STREAM,
-        },
+        { name: 'User-Agent', value: `insomnia/${version}` },
+        { name: 'Accept', value: CONTENT_TYPE_EVENT_STREAM },
       ],
       name: 'New Event Stream',
     }))._id;
@@ -144,7 +145,27 @@ export const createRequestAction: ActionFunction = async ({ request, params }) =
     activeRequestId = (await models.webSocketRequest.create({
       parentId: parentId || workspaceId,
       name: 'New WebSocket Request',
+      headers: [{ name: 'User-Agent', value: `insomnia/${version}` }],
     }))._id;
+  }
+  if (requestType === 'From Curl') {
+    if (!req) {
+      return null;
+    }
+    try {
+      activeRequestId = (await models.request.create({
+        parentId: parentId || workspaceId,
+        url: req.url,
+        method: req.method,
+        headers: req.headers,
+        body: req.body as RequestBody,
+        authentication: req.authentication,
+        parameters: req.parameters as RequestParameter[],
+      }))._id;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
   }
   invariant(typeof activeRequestId === 'string', 'Request ID is required');
   models.stats.incrementCreatedRequests();
@@ -155,21 +176,17 @@ export const createRequestAction: ActionFunction = async ({ request, params }) =
 export const updateRequestAction: ActionFunction = async ({ request, params }) => {
   const { requestId } = params;
   invariant(typeof requestId === 'string', 'Request ID is required');
-  let req = await requestOperations.getById(requestId);
+  const req = await requestOperations.getById(requestId);
   invariant(req, 'Request not found');
-  let patch = await request.json();
+  const patch = await request.json();
   // TODO: if gRPC, we should also copy the protofile to the destination workspace - INS-267
-  if (isRequest(req) && patch.body) {
-    const mimeType = patch.body?.mimeType as string | null;
-    const requestMeta = await models.requestMeta.getOrCreateByParentId(requestId);
-    const savedRequestBody = !mimeType ? (req.body || {}) : {};
-    await models.requestMeta.update(requestMeta, { savedRequestBody });
-    // TODO: make this less hacky, update expects latest req not patch
-    req = await requestOperations.update(req, patch);
-    patch = updateMimeType(req, mimeType, requestMeta.savedRequestBody);
+  const isMimeTypeChanged = isRequest(req) && patch.body && patch.body.mimeType !== req.body.mimeType;
+  if (isMimeTypeChanged) {
+    await requestOperations.update(req, { ...patch, ...updateMimeType(req, patch.body?.mimeType) });
+    return null;
   }
 
-  requestOperations.update(req, patch);
+  await requestOperations.update(req, patch);
   return null;
 };
 
@@ -231,6 +248,7 @@ export interface ConnectActionParams {
   headers: RequestHeader[];
   authentication: RequestAuthentication;
   cookieJar: CookieJar;
+  suppressUserAgent: boolean;
 }
 export const connectAction: ActionFunction = async ({ request, params }) => {
   const { requestId, workspaceId } = params;
@@ -257,6 +275,7 @@ export const connectAction: ActionFunction = async ({ request, params }) => {
       headers: rendered.headers,
       authentication: rendered.authentication,
       cookieJar: rendered.cookieJar,
+      suppressUserAgent: rendered.suppressUserAgent,
     });
   }
   // HACK: even more elaborate hack to get the request to update
@@ -265,7 +284,6 @@ export const connectAction: ActionFunction = async ({ request, params }) => {
       for (const change of changes) {
         const [event, doc] = change;
         if (isRequestMeta(doc) && doc.parentId === requestId && event === 'update') {
-          console.log('Response meta received', doc);
           resolve(null);
         }
       }
