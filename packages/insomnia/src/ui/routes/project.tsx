@@ -332,7 +332,7 @@ const ProjectRoute: FC = () => {
   const navigate = useNavigate();
   const filter = searchParams.get('filter') || '';
   const sortOrder =
-    (searchParams.get('sortOrder') as DashboardSortOrder) || 'modified-desc';
+    (searchParams.get('sortOrder') as DashboardSortOrder) || 'created-desc';
   const [importModalType, setImportModalType] = useState<
     'uri' | 'file' | 'clipboard' | null
   >(null);
@@ -673,19 +673,6 @@ const ProjectRoute: FC = () => {
                   );
                 }}
               </GridList>
-              <Button
-                aria-label="Explore subscriptions"
-                className="outline-none select-none flex hover:bg-[--hl-xs] focus:bg-[--hl-sm] transition-colors gap-2 px-4 items-center h-[--line-height-xs] w-full overflow-hidden text-[--hl]"
-                onPress={() => {
-                  window.main.openInBrowser('https://insomnia.rest/pricing');
-                }}
-              >
-                <Icon icon="arrow-up-right-from-square" />
-
-                <span className="truncate capitalize">
-                  Explore subscriptions
-                </span>
-              </Button>
             </div>
           }
           renderPaneOne={

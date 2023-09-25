@@ -10,6 +10,7 @@
   "editor.formatOnSaveMode": "modifications",
   "editor.defaultFormatter": "vscode.typescript-language-features",
   "editor.codeActionsOnSave": {
-    "source.organizeImports": false
+    "source.organizeImports": false,
+    "source.fixAll": true
   }
 }

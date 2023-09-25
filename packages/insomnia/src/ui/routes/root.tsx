@@ -447,12 +447,14 @@ const Root = () => {
               <Link>
                 <a
                   className="flex focus:outline-none focus:underline gap-1 items-center text-xs text-[--color-font] px-[--padding-md]"
-                  href="https://konghq.com/"
+                  href="https://github.com/Soontao/insomnia"
                 >
                   Made with
-                  <Icon className="text-[--color-surprise]" icon="heart" /> by
-                  Kong
+                  <Icon className="text-[--color-surprise]" icon="cloud" /> by
+                  Kong &
+                  <Icon className="text-[--color-surprise]" icon="people" /> Theo
                 </a>
+
               </Link>
             </div>
           </div>

@@ -237,6 +237,7 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
           help: 'Some OS functions return objects. Use JSONPath queries to extract desired values.',
           hide: args => !['userInfo', 'cpus'].includes(args[0].value + ''),
           type: 'string',
+          defaultValue: '$',
         },
       ],
       run(_context, fnName: 'arch' | 'cpus', filter) {
@@ -337,6 +338,7 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
           displayName: 'JSONPath Filter',
           encoding: 'base64', // So it doesn't cause syntax errors
           type: 'string',
+          defaultValue: '$',
         },
       ],
       run(_context, jsonString, filter) {
@@ -1065,6 +1067,17 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
         }
 
         return null;
+      },
+    },
+  },
+  {
+    templateTag: {
+      name: 'username',
+      displayName: 'UserName',
+      description: 'current system user name',
+      args: [],
+      async run() {
+        return os.userInfo().username;
       },
     },
   },

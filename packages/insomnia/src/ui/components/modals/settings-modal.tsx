@@ -44,7 +44,7 @@ export const SettingsModal = forwardRef<SettingsModalHandle, ModalProps>((props,
       <ModalHeader>
         {getProductName()} Preferences
         <span className="faint txt-sm">
-          &nbsp;&nbsp;–&nbsp; v{getAppVersion()}
+          &nbsp;&nbsp;–&nbsp; v{getAppVersion()} Theo Version
           {email ? ` – ${email}` : null}
         </span>
       </ModalHeader>
