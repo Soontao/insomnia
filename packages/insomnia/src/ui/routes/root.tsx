@@ -7,9 +7,6 @@ import {
   Button,
   Item,
   Link,
-  Menu,
-  MenuTrigger,
-  Popover,
   Tooltip,
   TooltipTrigger,
 } from 'react-aria-components';
@@ -25,10 +22,6 @@ import {
 } from 'react-router-dom';
 
 import {
-  getFirstName,
-  getLastName,
-  isLoggedIn,
-  logout,
   onLoginLogout,
 } from '../../account/session';
 import { isDevelopment } from '../../common/constants';

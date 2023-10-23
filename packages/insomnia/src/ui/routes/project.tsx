@@ -321,8 +321,6 @@ const ProjectRoute: FC = () => {
     projectId: string;
   };
 
-  const { organizations } = useOrganizationLoaderData();
-
   const [searchParams, setSearchParams] = useSearchParams();
   const [isGitRepositoryCloneModalOpen, setIsGitRepositoryCloneModalOpen] =
     useState(false);
