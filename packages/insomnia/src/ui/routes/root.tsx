@@ -54,7 +54,6 @@ import { AIProvider } from '../context/app/ai-context';
 import { NunjucksEnabledProvider } from '../context/nunjucks/nunjucks-enabled-context';
 import { useSettingsPatcher } from '../hooks/use-request';
 import Modals from './modals';
-import { useOrganizationLoaderData } from './organization';
 import { WorkspaceLoaderData } from './workspace';
 
 export interface RootLoaderData {
@@ -67,31 +66,10 @@ export const loader: LoaderFunction = async (): Promise<RootLoaderData> => {
   };
 };
 
-const getNameInitials = (name: string) => {
-  // Split on whitespace and take first letter of each word
-  const words = name.toUpperCase().split(' ');
-  const firstWord = words[0];
-  const lastWord = words[words.length - 1];
-
-  // If there is only one word, just take the first letter
-  if (words.length === 1) {
-    return firstWord.charAt(0);
-  }
-
-  // If the first word is an emoji or an icon then just use that
-  const iconMatch = firstWord.match(/\p{Extended_Pictographic}/u);
-  if (iconMatch) {
-    return iconMatch[0];
-  }
-
-  return `${firstWord.charAt(0)}${lastWord ? lastWord.charAt(0) : ''}`;
-};
-
 const Root = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useLoaderData() as RootLoaderData;
-  const { organizations } = useOrganizationLoaderData();
   const workspaceData = useRouteLoaderData(
     ':workspaceId'
   ) as WorkspaceLoaderData | null;
