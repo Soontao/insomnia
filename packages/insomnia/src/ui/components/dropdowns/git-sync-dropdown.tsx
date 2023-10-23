@@ -265,7 +265,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
                 borderRadius: '0',
                 borderTop: '1px solid var(--hl-md)',
                 justifyContent: 'flex-start !important',
-                height: 'var(--line-height-sm)',
+                height: 'var(--line-height-xs)',
               }}
               disabled={isLoading}
             >
@@ -459,7 +459,12 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
                 {iconClassName && (
                   <i className={classnames('space-right', iconClassName)} />
                 )}
-                <span className="ellipsis">Git Sync</span>
+                <span
+                  className="ellipsis"
+                  style={{
+                    fontSize: 'var(--font-size-xs)',
+                  }}
+                >Git Sync</span>
               </div>
 
             </DropdownButton>

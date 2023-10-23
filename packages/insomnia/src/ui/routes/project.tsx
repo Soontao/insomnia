@@ -12,7 +12,6 @@ import {
   Popover,
   SearchField,
   Select,
-  SelectValue,
 } from 'react-aria-components';
 import {
   LoaderFunction,
@@ -468,51 +467,6 @@ const ProjectRoute: FC = () => {
           className="new-sidebar"
           renderPageSidebar={
             <div className="flex flex-1 flex-col overflow-hidden divide-solid divide-y divide-[--hl-md]">
-              <div className="p-[--padding-sm]">
-                <Select
-                  aria-label="Organizations"
-                  onSelectionChange={id => {
-                    navigate(`/organization/${id}`);
-                  }}
-                  selectedKey={organizationId}
-                  items={organizations}
-                >
-                  <Button className="px-4 py-1 flex flex-1 items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm">
-                    <SelectValue<Organization> className="flex truncate items-center justify-center gap-2">
-                      {({ selectedItem }) => {
-                        return selectedItem?.name;
-                      }}
-                    </SelectValue>
-                    <Icon icon="caret-down" />
-                  </Button>
-                  <Popover className="min-w-max">
-                    <ListBox<Organization> className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none">
-                      {item => (
-                        <Item
-                          id={item._id}
-                          key={item._id}
-                          className="flex gap-2 px-[--padding-md] aria-selected:font-bold items-center text-[--color-font] h-[--line-height-xs] w-full text-md whitespace-nowrap bg-transparent hover:bg-[--hl-sm] disabled:cursor-not-allowed focus:bg-[--hl-xs] focus:outline-none transition-colors"
-                          aria-label={item.name}
-                          textValue={item.name}
-                          value={item}
-                        >
-                          {({ isSelected }) => (
-                            <Fragment>
-                              <span>{item.name}</span>
-                              {isSelected && (
-                                <Icon
-                                  icon="check"
-                                  className="text-[--color-success] justify-self-end"
-                                />
-                              )}
-                            </Fragment>
-                          )}
-                        </Item>
-                      )}
-                    </ListBox>
-                  </Popover>
-                </Select>
-              </div>
               <div className="flex flex-col flex-1">
                 <Heading className="p-[--padding-sm] uppercase text-xs">
                   Projects ({projectsCount})

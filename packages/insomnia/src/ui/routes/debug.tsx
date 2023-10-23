@@ -51,7 +51,6 @@ import {
 import { invariant } from '../../utils/invariant';
 import { RequestActionsDropdown } from '../components/dropdowns/request-actions-dropdown';
 import { RequestGroupActionsDropdown } from '../components/dropdowns/request-group-actions-dropdown';
-import { WorkspaceSyncDropdown } from '../components/dropdowns/workspace-sync-dropdown';
 import { ErrorBoundary } from '../components/error-boundary';
 import { Icon } from '../components/icon';
 import { useDocBodyKeyboardShortcuts } from '../components/keydown-binder';
@@ -940,12 +939,13 @@ export const Debug: FC = () => {
                       style={{
                         height: `${virtualItem.size}`,
                         transform: `translateY(${virtualItem.start}px)`,
+                        fontSize: 'var(--font-size-md)',
                       }}
                     >
                       <div
-                        className="flex select-none outline-none group-aria-selected:text-[--color-font] relative group-hover:bg-[--hl-xs] group-focus:bg-[--hl-sm] transition-colors gap-2 px-4 items-center h-[--line-height-xs] w-full overflow-hidden text-[--hl]"
+                        className="flex select-none outline-none group-aria-selected:text-[--color-font] relative group-hover:bg-[--hl-xs] group-focus:bg-[--hl-sm] transition-colors gap-2 px-3 items-center h-[--line-height-xs] w-full overflow-hidden text-[--hl]"
                         style={{
-                          paddingLeft: `${item.level + 1}rem`,
+                          paddingLeft: `${item.level + 0.5}rem`,
                         }}
                       >
                         <span className="group-aria-selected:bg-[--color-surprise] transition-colors top-0 left-0 absolute h-full w-[2px] bg-transparent" />
@@ -967,7 +967,7 @@ export const Debug: FC = () => {
                         )}
                         {isRequestGroup(item.doc) && (
                           <Icon
-                            className="w-6"
+                            className="w-10"
                             icon={item.collapsed ? 'folder' : 'folder-open'}
                           />
                         )}
@@ -997,8 +997,6 @@ export const Debug: FC = () => {
               </GridList>
             </div>
           </div>
-
-          <WorkspaceSyncDropdown />
 
           {isEnvironmentModalOpen && (
             <WorkspaceEnvironmentsEditModal

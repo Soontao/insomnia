@@ -33,7 +33,6 @@ import {
 } from '../../account/session';
 import { isDevelopment } from '../../common/constants';
 import * as models from '../../models';
-import { isDefaultOrganization } from '../../models/organization';
 import { Settings } from '../../models/settings';
 import { isDesign } from '../../models/workspace';
 import { reloadPlugins } from '../../plugins';
@@ -45,7 +44,6 @@ import { submitAuthCode } from '../auth-session-provider';
 import { WorkspaceDropdown } from '../components/dropdowns/workspace-dropdown';
 import { Hotkey } from '../components/hotkey';
 import { Icon } from '../components/icon';
-import { InsomniaAILogo } from '../components/insomnia-icon';
 import { showError, showModal } from '../components/modals';
 import { AlertModal } from '../components/modals/alert-modal';
 import { AskModal } from '../components/modals/ask-modal';
@@ -304,14 +302,9 @@ const Root = () => {
           )}
           <div className="w-full h-full divide-x divide-solid divide-y divide-[--hl-md] grid-template-app-layout grid relative bg-[--color-bg]">
             <header className="[grid-area:Header] grid grid-cols-3 items-center">
-              <div className="flex items-center">
-                <div className="flex w-[50px] py-2">
-                  <InsomniaAILogo />
-                </div>
-                {/* {!isLoggedIn() ? <GitHubStarsButton /> : null} */}
-              </div>
-              <div className="flex gap-2 flex-nowrap items-center justify-center">
-                {workspaceData && (
+              <div className="flex" />
+              {workspaceData && (
+                <div className="flex gap-2 flex-nowrap items-center justify-center p-2">
                   <Fragment>
                     <Breadcrumbs items={crumbs}>
                       {item => (
@@ -340,87 +333,11 @@ const Root = () => {
                       </nav>
                     )}
                   </Fragment>
-                )}
               </div>
-              <div className="flex gap-[--padding-sm] items-center justify-end p-2">
-                {isLoggedIn() ? (
-                  <MenuTrigger>
-                    <Button className="px-4 py-1 flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm">
-                      <Icon icon="user" />{' '}
-                      {`${getFirstName()} ${getLastName()}`}
-                    </Button>
-                    <Popover className="min-w-max">
-                      <Menu
-                        onAction={action => {
-                          if (action === 'logout') {
-                            logout();
-                          }
-
-                          if (action === 'account-settings') {
-                            window.main.openInBrowser(
-                              'https://app.insomnia.rest/app/account/'
-                            );
-                          }
-                        }}
-                        className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
-                      >
-                        <Item
-                          id="account-settings"
-                          className="flex gap-2 px-[--padding-md] aria-selected:font-bold items-center text-[--color-font] h-[--line-height-xs] w-full text-md whitespace-nowrap bg-transparent hover:bg-[--hl-sm] disabled:cursor-not-allowed focus:bg-[--hl-xs] focus:outline-none transition-colors"
-                          aria-label="Account settings"
-                        >
-                          <Icon icon="gear" />
-                          <span>Account Settings</span>
-                        </Item>
-                        <Item
-                          id="logout"
-                          className="flex gap-2 px-[--padding-md] aria-selected:font-bold items-center text-[--color-font] h-[--line-height-xs] w-full text-md whitespace-nowrap bg-transparent hover:bg-[--hl-sm] disabled:cursor-not-allowed focus:bg-[--hl-xs] focus:outline-none transition-colors"
-                          aria-label="logout"
-                        >
-                          <Icon icon="sign-out" />
-                          <span>Logout</span>
-                        </Item>
-                      </Menu>
-                    </Popover>
-                  </MenuTrigger>
-                ) : (
-                    null
-                )}
-              </div>
+              )}
+              <div className="flex justify-end" />
             </header>
-            <div className="[grid-area:Navbar] overflow-hidden">
-              <nav className="flex flex-col items-center place-content-stretch gap-[--padding-md] w-full h-full overflow-y-auto py-[--padding-md]">
-                {organizations.map(organization => (
-                  <TooltipTrigger key={organization._id}>
-                    <Link>
-                      <NavLink
-                        className={({ isActive }) =>
-                          `select-none text-[--color-font-surprise] flex-shrink-0 hover:no-underline transition-all duration-150 bg-gradient-to-br box-border from-[#4000BF] to-[#154B62] p-[--padding-sm] font-bold outline-[3px] rounded-md w-[28px] h-[28px] flex items-center justify-center active:outline overflow-hidden outline-offset-[3px] outline ${
-                            isActive
-                              ? 'outline-[--color-font]'
-                              : 'outline-transparent focus:outline-[--hl-md] hover:outline-[--hl-md]'
-                          }`
-                        }
-                        to={`/organization/${organization._id}`}
-                      >
-                        {isDefaultOrganization(organization) ? (
-                          <Icon icon="home" />
-                        ) : (
-                          getNameInitials(organization.name)
-                        )}
-                      </NavLink>
-                    </Link>
-                    <Tooltip
-                      placement="right"
-                      offset={8}
-                      className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] text-[--color-font] px-4 py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
-                    >
-                      <span>{organization.name}</span>
-                    </Tooltip>
-                  </TooltipTrigger>
-                ))}
-              </nav>
-            </div>
+            <div className="[grid-area:Navbar] overflow-hidden" />
             <Outlet />
             <div className="relative [grid-area:Statusbar] flex items-center justify-between overflow-hidden">
               <TooltipTrigger>
